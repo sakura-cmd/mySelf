@@ -5,38 +5,49 @@
       <h4>获取地图级别与中心点坐标</h4>
       <p>当前级别: {{ mapLevel }}</p>
       <p>当前中心点: {{ mapCore }}</p>
+      <p>点击获取当前的坐标系: {{ CoordinateSystem }}</p>
     </div>
   </div>
 </template>
 
 <script>
-window.onLoad = function () {
-  var map = new AMap.Map('container', {
-    resizeEnable: true, // 是否监控地图容器尺寸变化
-    zoom: 11, // 初始地图级别
-    center: [121.498586, 31.239637] // 初始地图中心点
-  })
-}
-var url =
-  'https://webapi.amap.com/maps?v=1.4.15&key=5b174ba38c1d1acf0fb43dc22e0528eb&callback=onLoad'
-var jsapi = document.createElement('script')
-jsapi.charset = 'utf-8'
-jsapi.src = url
-document.head.appendChild(jsapi)
-
+import AMap from 'AMap'
 export default {
   data () {
     return {
+      // 声明全局的map重新赋值的
+      mymap: null,
+      // 当前级别
       mapLevel: '',
-      mapCore: ''
+      // 当前中心点
+      mapCore: '',
+      // 点击获取当前的坐标系
+      CoordinateSystem: ''
     }
   },
   mounted () {
-    // map.on('complete', function () {
-    //   log.success('地图加载完成！')
-    // })
+    // this.mapInit()
+    this.mymap = new AMap.Map('container', {
+      center: [121.446147, 31.236253],
+      resizeEnable: true,
+      zoom: 10
+    })
+    // 绑定地图移动与缩放事件
+    this.mymap.on('moveend', this.logMapinfo)
+    this.mymap.on('zoomend', this.logMapinfo)
+    // 点击获取当前的坐标系
+    // 为地图注册click事件获取鼠标点击出的经纬度坐标
+    this.mymap.on('click', (e) => {
+      this.CoordinateSystem = e.lnglat.getLng() + ',' + e.lnglat.getLat()
+    })
   },
-  methods: {}
+  methods: {
+    // 绑定地图移动与缩放事件
+    logMapinfo () {
+      this.mapLevel = this.mymap.getZoom() // 获取当前地图级别
+      this.mapCore = this.mymap.getCenter() // 获取当前地图中心位置
+    }
+  }
 }
 </script>
 
@@ -49,13 +60,13 @@ export default {
     width: 100%;
     height: 800px;
   }
-  .mapInfo{
+  .mapInfo {
     position: absolute;
-    top: 0;
-    right: 10px;
-    width: 200px;
+    top: 20px;
+    right: 20px;
+    width: 400px;
     padding: 10px;
-    background: #999
+    background: #999;
   }
 }
 </style>
