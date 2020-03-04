@@ -15,7 +15,9 @@
           placeholder="输入关键字选取地点"
         ></el-input>
       </P>
-      <p></p>
+      <p>省：<select id="province" style="width: 300px; height: 30px; border: 1px solid #ccc" @change="searchArea"></select></p>
+      <p>市：<select id="city" style="width: 300px; height: 30px; border: 1px solid #ccc" @change="searchArea"></select></p>
+      <p>区：<select id="district" style="width: 300px; height: 30px; border: 1px solid #ccc" @change="searchArea"></select></p>
     </div>
   </div>
 </template>
@@ -28,26 +30,32 @@ export default {
       // 声明全局的map重新赋值的
       mymap: null,
       // 当前城市
-      nowCity: '',
+      nowCity: '上海市',
       // 当前级别
-      mapLevel: '',
+      mapLevel: '6',
       // 当前中心点
-      mapCore: '',
+      mapCore: '121.469002, 31.226367',
       // 点击获取当前的坐标系
-      CoordinateSystem: '',
+      CoordinateSystem: '121.469002, 31.226367',
       // POI选点在marker弹出来的信息框
       infoWindow: null,
       // POI实例
       poiPicker: null,
       // 输入框的内容实例
-      locationInfo: '',
+      locationInfo: null,
       // POI的marker实例
-      marker: ''
+      marker: null,
+      // 绘制区域
+      polygons: [],
+      // 区
+      district: null
     }
   },
   mounted () {
     // 地图初始化
     this.mapInit()
+    // 行政区查询
+    this.province()
   },
   methods: {
     // 地图初始化
@@ -61,12 +69,15 @@ export default {
         // viewMode: '3D' // 地图模式
       })
       // 异步加载多个插件
-      AMap.plugin(['AMap.ToolBar', 'AMap.Scale'], () => {
-        //
-        this.mymap.addControl(new AMap.ToolBar())
-        // 高德自带比例尺
-        this.mymap.addControl(new AMap.Scale())
-      })
+      AMap.plugin(
+        ['AMap.ToolBar', 'AMap.Scale', 'AMap.Geocoder', 'AMap.DistrictSearch'],
+        () => {
+          // 放大尺
+          this.mymap.addControl(new AMap.ToolBar())
+          // 高德自带比例尺
+          this.mymap.addControl(new AMap.Scale())
+        }
+      )
       // 显示地图缩放控件
       AMapUI.loadUI(['control/BasicControl'], BasicControl => {
         // 缩放控件，显示Zoom值
@@ -87,62 +98,25 @@ export default {
       // 绑定地图移动与缩放事件
       this.mymap.on('moveend', this.logMapinfo)
       this.mymap.on('zoomend', this.logMapinfo)
-      // 点击获取当前的坐标系
+      // 移动地图获取当前城市位置
+      this.mymap.on('moveend', this.showCityInfo)
       // 为地图注册click事件获取鼠标点击出的经纬度坐标
       this.mymap.on('click', e => {
         this.CoordinateSystem = e.lnglat.getLng() + ',' + e.lnglat.getLat()
         // this.openInfoWin()
+        this.showAddressInfo()
+        this.logMapinfo()
+        // this.poiPickerReady(this.CoordinateSystem)
       })
-      // 添加地图标点
-      // let markerSH = new AMap.Marker({
-      //   position: new AMap.LngLat(121.469002, 31.226367), // 经纬度对象，也可以是经纬度构成的一维数组[116.39, 39.9]
-      //   title: '上海'
-      // })
-      // let markerBJ = new AMap.Marker({
-      //   position: new AMap.LngLat(116.419298, 39.8916), // 经纬度对象，也可以是经纬度构成的一维数组[116.39, 39.9]
-      //   title: '北京'
-      // })
-      // let markerNJ = new AMap.Marker({
-      //   position: new AMap.LngLat(118.797951, 32.045974), // 经纬度对象，也可以是经纬度构成的一维数组[116.39, 39.9]
-      //   title: '南京'
-      // })
-      // let markerFN = new AMap.Marker({
-      //   iconLabel: 'ahha',
-      //   iconStyle: 'green',
-      //   map: this.mymap,
-      //   position: new AMap.LngLat(119.552726, 33.613104), // 经纬度对象，也可以是经纬度构成的一维数组[116.39, 39.9]
-      //   title: '王新星老窝'
-      // })
-      // let markerList = [markerSH, markerBJ, markerNJ, markerFN]
-      // this.mymap.add(markerList)
-      // this.mymap.add(markerSH)
-      // 设置DomLibrary，jQuery或者Zepto
-      // AMapUI.setDomLibrary($)
-      // 加载SimpleInfoWindow，loadUI的路径参数为模块名中 'ui/' 之后的部分
-      // AMapUI.loadUI(['overlay/SimpleInfoWindow'], SimpleInfoWindow => {
-      //   this.infoWindow = new SimpleInfoWindow({
-      //     infoTitle: '<strong>这里是标题</strong>',
-      //     infoBody: '<p>这里是内容。</p>',
-      //     // 基点指向marker的头部位置
-      //     offset: new AMap.Pixel(0, -31)
-      //   })
-      //   // marker 点击时打开
-      //   AMap.event.addListener(markerSH, 'click', () => {
-      //     this.openInfoWin()
-      //   })
-      // })
       // POI输入框选点
       AMapUI.loadUI(['misc/PoiPicker'], PoiPicker => {
         this.poiPicker = new PoiPicker({
           city: '上海',
           input: 'addLocation'
         })
-
         // 初始化poiPicker
         this.poiPickerReady(this.poiPicker)
       })
-      // 初始化当前位置
-      this.showCityInfo()
     },
     // 绑定地图移动与缩放事件
     logMapinfo () {
@@ -159,7 +133,7 @@ export default {
     changeLocation (val) {
       // this.poiPickerReady(val)
     },
-    // 初始化poiPicker
+    // 初始化poiPicker,POI
     poiPickerReady (poiPicker) {
       // console.log(poiPicker)
       window.poiPicker = poiPicker
@@ -172,7 +146,7 @@ export default {
       })
       // 选取了某个POI
       poiPicker.on('poiPicked', poiResult => {
-        // console.log(poiResult)
+        console.log(poiResult)
         let source = poiResult.source
         let poi = poiResult.item
         let info = {
@@ -195,6 +169,8 @@ export default {
         this.openInfoWin()
         this.CoordinateSystem = info.location
         this.locationInfo = info.name
+        this.mymap.getCenter()
+        this.nowCity = poi.cityname
         // map.setCenter(marker.getPosition());
       })
 
@@ -214,20 +190,102 @@ export default {
     },
     // 获取当前城市
     showCityInfo () {
-      // 实例化城市查询类
-      let citysearch = new AMap.CitySearch()
-      // 自动获取用户IP，返回当前城市
-      citysearch.getLocalCity((status, result) => {
+      this.mymap.getCity(info => {
+        this.nowCity = info.province + info.city + info.district
+      })
+    },
+    // 逆向地理编码====>根据坐标显示地名
+    showAddressInfo () {
+      // geocoder反编码
+      let geocoder = new AMap.Geocoder({
+        // city 指定进行编码查询的城市，支持传入城市名、adcode 和 citycode
+        city: '上海'
+      })
+      geocoder.getAddress(this.CoordinateSystem, (status, result) => {
         if (status === 'complete' && result.info === 'OK') {
-          if (result && result.city && result.bounds) {
-            console.log(result.bounds)
-            this.nowCity = result.city
-            let citybounds = result.bounds
-            // 地图显示当前城市
-            this.mymap.setBounds(citybounds)
-          }
+          // result为对应的地理位置详细信息
+          this.nowCity = result.regeocode.formattedAddress
         } else {
-          this.nowCity = result.info
+          this.$message.warning('根据经纬度查询地址失败')
+        }
+      })
+    },
+    // 行政区划查询
+    province () {
+      let opts = {
+        subdistrict: 1, // 返回下一级行政区
+        showbiz: false // 最后一级返回街道信息
+      }
+      // 行政区查询
+      this.district = new AMap.DistrictSearch(opts)// 注意：需要使用插件同步下发功能才能这样直接使用
+      this.district.search('中国', (status, result) => {
+        if (status === 'complete') {
+          this.getData(result.districtList[0])
+        }
+      })
+    },
+    // 获取中国省份的的数据
+    getData (data, level) {
+      let citySelect = document.getElementById('city')
+      let districtSelect = document.getElementById('district')
+      let bounds = data.boundaries
+      if (bounds) {
+        for (let i = 0, l = bounds.length; i < l; i++) {
+          let polygon = new AMap.Polygon({
+            map: this.mymap,
+            strokeWeight: 1,
+            strokeColor: '#0091ea',
+            fillColor: '#80d8ff',
+            fillOpacity: 0.2,
+            path: bounds[i]
+          })
+          this.polygons.push(polygon)
+        }
+        this.mymap.setFitView() // 地图自适应
+      }
+      // 清空下一级别的下拉列表
+      if (level === 'province') {
+        citySelect.innerHTML = ''
+        districtSelect.innerHTML = ''
+      } else if (level === 'city') {
+        districtSelect.innerHTML = ''
+      } else if (level === 'district') {
+        // 解决add的报错,知道县级就可以了
+        return
+      }
+      let subList = data.districtList
+      if (subList) {
+        let contentSub = new Option('--请选择--')
+        let curlevel = subList[0].level
+        let curList = document.querySelector('#' + curlevel)
+        curList.add(contentSub)
+        for (let i = 0, l = subList.length; i < l; i++) {
+          let name = subList[i].name
+          let levelSub = subList[i].level
+          contentSub = new Option(name)
+          contentSub.setAttribute('value', levelSub)
+          contentSub.center = subList[i].center
+          contentSub.adcode = subList[i].adcode
+          curList.add(contentSub)
+        }
+      }
+    },
+    // 行政区规划图
+    searchArea (obj) {
+      // 清除地图上所有覆盖物
+      let that = this
+      for (let i = 0, l = this.polygons.length; i < l; i++) {
+        this.polygons[i].setMap(null)
+      }
+      let option = obj.srcElement[obj.srcElement.options.selectedIndex]
+      let adcode = option.adcode
+      this.district.setLevel(option.value) // 行政区级别
+      this.district.setExtensions('all')
+      // 行政区查询
+      // 按照adcode进行查询可以保证数据返回的唯一性
+      this.district.search(adcode, function (status, result) {
+        if (status === 'complete') {
+          that.getData(result.districtList[0], obj.srcElement.id)
         }
       })
     }
