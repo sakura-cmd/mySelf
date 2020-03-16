@@ -15,9 +15,21 @@
           placeholder="输入关键字选取地点"
         ></el-input>
       </P>
-      <p>省：<select id="province" style="width: 300px; height: 30px; border: 1px solid #ccc" @change="searchArea"></select></p>
-      <p>市：<select id="city" style="width: 300px; height: 30px; border: 1px solid #ccc" @change="searchArea"></select></p>
-      <p>区：<select id="district" style="width: 300px; height: 30px; border: 1px solid #ccc" @change="searchArea"></select></p>
+      <p>省：<select
+          id="province"
+          style="width: 300px; height: 30px; border: 1px solid #ccc"
+          @change="searchArea"
+        ></select></p>
+      <p>市：<select
+          id="city"
+          style="width: 300px; height: 30px; border: 1px solid #ccc"
+          @change="searchArea"
+        ></select></p>
+      <p>区：<select
+          id="district"
+          style="width: 300px; height: 30px; border: 1px solid #ccc"
+          @change="searchArea"
+        ></select></p>
     </div>
   </div>
 </template>
@@ -145,10 +157,10 @@ export default {
         this.openInfoWin()
       })
       // 选取了某个POI
-      poiPicker.on('poiPicked', poiResult => {
-        console.log(poiResult)
-        let source = poiResult.source
-        let poi = poiResult.item
+      poiPicker.on('poiPicked', res => {
+        console.log(res)
+        let source = res.source
+        let poi = res.item
         let info = {
           source: source,
           id: poi.id,
@@ -161,11 +173,7 @@ export default {
         this.infoWindow.setMap(this.mymap)
         this.marker.setPosition(poi.location)
         this.infoWindow.setPosition(poi.location)
-        this.infoWindow.setContent(
-          // 'POI信息: <pre>' + JSON.stringify(info, null, 2) + '</pre>'
-          // '地理信息: <pre>' + '<div>' + '搜索名称:' + info.name + '<br>' + '地址:' + info.address + '<br>' + '坐标地址:' + info.location + '<br>' + '</div>' + '</pre>'
-          this.createContent(info)
-        )
+        this.infoWindow.setContent(this.createContent(info))
         this.openInfoWin()
         this.CoordinateSystem = info.location
         this.locationInfo = info.name
@@ -217,7 +225,7 @@ export default {
         showbiz: false // 最后一级返回街道信息
       }
       // 行政区查询
-      this.district = new AMap.DistrictSearch(opts)// 注意：需要使用插件同步下发功能才能这样直接使用
+      this.district = new AMap.DistrictSearch(opts) // 注意：需要使用插件同步下发功能才能这样直接使用
       this.district.search('中国', (status, result) => {
         if (status === 'complete') {
           this.getData(result.districtList[0])
