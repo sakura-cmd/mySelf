@@ -41,6 +41,11 @@ export default {
       this.num = this.checkFormatMoney(value)
       console.log(this.num)
     }
+  },
+  created () {
+    this.$axios.get('https://www.fastmock.site/mock/a631aea78706aa57ccde0e1f11aac78d/demo/one?id=1').then(res => {
+      console.log(res)
+    })
   }
 }
 </script>
