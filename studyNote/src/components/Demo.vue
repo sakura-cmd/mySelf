@@ -12,6 +12,8 @@
       style="width:200px;"
       placeholder="请输入金额"
     ></el-input>
+    <br>
+    <el-button @click="getData">请求数据</el-button>
   </div>
 </template>
 
@@ -40,12 +42,16 @@ export default {
     changeNum (value) {
       this.num = this.checkFormatMoney(value)
       console.log(this.num)
+    },
+    getData () {
+      console.log(123)
+      // this.$axios.('')
     }
   },
   created () {
-    this.$axios.get('https://www.fastmock.site/mock/a631aea78706aa57ccde0e1f11aac78d/demo/one?id=1').then(res => {
-      console.log(res)
-    })
+    // this.$axios.get('https://www.fastmock.site/mock/a631aea78706aa57ccde0e1f11aac78d/demo/one?id=1').then(res => {
+    //   console.log(res)
+    // })
   }
 }
 </script>
